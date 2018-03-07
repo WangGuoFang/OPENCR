@@ -1,8 +1,8 @@
 #ifndef ROBOT_NAVIGATOR_H_
 #define ROBOT_NAVIGATOR_H_
 #include <ros/ros.h>
-#include <nav_msgs/GetMap.h>
 #include <std_srvs/Trigger.h>
+#include <sensor_msgs/LaserScan.h>
 #include <tf/transform_listener.h>
 #include <actionlib/server/simple_action_server.h>
 #include <actionlib/client/simple_action_client.h>
@@ -11,15 +11,12 @@
 
 #include <nearest_frontier_planner/grid_map.h>
 #include <nearest_frontier_planner/commands.h>
-#include <nearest_frontier_planner/map_inflation_tool.h>
-#include <nearest_frontier_planner/exploration_planner.h>
+#include <nearest_frontier_planner/nearest_frontier_planner.h>
 
 #include <move_base_msgs/MoveBaseAction.h>
 
-#include <queue>
 
 typedef actionlib::SimpleActionServer<nearest_frontier_planner::ExploreAction> ExploreActionServer;
-typedef pluginlib::ClassLoader<ExplorationPlanner> PlanLoader;
 
 class RobotNavigator
 {
@@ -33,50 +30,43 @@ class RobotNavigator
       std_srvs::Trigger::Response &res);
   void receiveExploreGoal(
       const nearest_frontier_planner::ExploreGoal::ConstPtr &goal);
+  void mapCallback(const nav_msgs::OccupancyGrid& global_map);
+  void scanCallback(const sensor_msgs::LaserScan& scan);
+  int scoreLine(double, double);
 
  private:
-  bool isLocalized();
   bool setCurrentPosition();
-  bool getMap();
   void stop();
   bool preparePlan();
 
   // Everything related to ROS
-  tf::TransformListener mTfListener;
-  ros::ServiceClient mGetMapClient;
-  ros::ServiceServer mStopServer;
-  ros::ServiceServer mPauseServer;
+  tf::TransformListener tf_listener_;
+  ros::ServiceServer stop_server_;
+  ros::ServiceServer pause_server_;
 
-  std::string mMapFrame;
-  std::string mRobotFrame;
-  std::string mExploreActionTopic;
+  std::string map_frame_;
+  std::string robot_frame_;
+  std::string explore_action_topic_;
 
-  ExploreActionServer* mExploreActionServer;
-
-  PlanLoader* mPlanLoader;
+  ExploreActionServer* explore_action_server_;
 
   // Current status and goals
-  bool mHasNewMap;
-  bool mIsPaused;
-  bool mIsStopped;
-  int mStatus;
-  unsigned int mGoalPoint;
-  unsigned int mStartPoint;
+  bool has_new_map_;
+  bool is_paused_;
+  bool is_stopped_;
+  unsigned int goal_point_;
+  unsigned int start_point_;
+  double update_frequency_;
+
+  double longest_distance_;
+  double angles_;
 
   // Everything related to the global map and plan
-  MapInflationTool mInflationTool;
-  std::string mExplorationStrategy;
-  boost::shared_ptr<ExplorationPlanner> mExplorationPlanner;
-  GridMap mCurrentMap;
-
-  double mInflationRadius;
-  double mRobotRadius;
-  unsigned int mCellInflationRadius;
-  unsigned int mCellRobotRadius;
-
-  signed char mCostObstacle;
-  signed char mCostLethal;
+  NearestFrontierPlanner exploration_planner_;
+  GridMap current_map_;
 
   ros::Publisher goal_publisher_;
+  ros::Subscriber map_sub_;
+  ros::Subscriber scan_sub_;
 };
 #endif  // end ROBOT_NAVIGATOR_H_

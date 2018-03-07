@@ -2,17 +2,35 @@
 #include <actionlib/client/simple_action_client.h>
 #include <nearest_frontier_planner/ExploreAction.h>
 #include <std_srvs/Trigger.h>
+#include <geometry_msgs/Twist.h>
 
 #include <nearest_frontier_planner/commands.h>
 
 typedef actionlib::SimpleActionClient<nearest_frontier_planner::ExploreAction> ExploreClient;
 
-ExploreClient* gExploreClient;
+ExploreClient* explore_client;
 
 bool receiveCommand(std_srvs::Trigger::Request &req,
     std_srvs::Trigger::Response &res) {
+  geometry_msgs::Twist cmd_vel;
+  ros::NodeHandle n;
+  ros::Publisher vel_pub;
+  ros::Rate r(10);
+  int t = 0;
+
+  vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+
+  while ( t++ < 80 && ros::ok() ) {
+    cmd_vel.linear.x = 0.0f;
+    cmd_vel.linear.y = 0.0f;
+    cmd_vel.angular.z = 0.2f;
+
+    vel_pub.publish(cmd_vel);
+    r.sleep();
+  }
+
   nearest_frontier_planner::ExploreGoal goal;
-  gExploreClient->sendGoal(goal);
+  explore_client->sendGoal(goal);
   res.success = true;
   res.message = "Send ExploreGoal to Navigator.";
   return true;
@@ -23,13 +41,13 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "Explore");
   ros::NodeHandle n;
 
-  ros::ServiceServer cmdServer =
+  ros::ServiceServer cmd_server =
     n.advertiseService(NAV_EXPLORE_SERVICE, &receiveCommand);
-  gExploreClient = new ExploreClient(NAV_EXPLORE_ACTION, true);
-  gExploreClient->waitForServer();
+  explore_client = new ExploreClient(NAV_EXPLORE_ACTION, true);
+  explore_client->waitForServer();
 
   ros::spin();
 
-  delete gExploreClient;
+  delete explore_client;
   return 0;
 }

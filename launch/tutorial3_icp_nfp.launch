@@ -1,13 +1,14 @@
 <launch>
 
-  <rosparam file="$(find nearest_frontier_planner)/param/ros.yaml" />
 
-	<!-- Start the Navigator to move the robot autonomously -->
-	<node name="Navigator" pkg="nearest_frontier_planner" type="nfp_navigator">
-		<rosparam file="$(find nearest_frontier_planner)/param/navigator.yaml"/>
-	</node>
+  <!-- Start the Navigator to move the robot autonomously -->
+  <node name="Navigator" pkg="nearest_frontier_planner" type="nfp_navigator">
+    <param name="update_frequency" value="2"/>
+    <param name="map_frame" value="map" />
+    <param name="robot_frame" value="base_link" />
+  </node>
 
-	<node name="Explore" pkg="nearest_frontier_planner" type="nfp_explore_client" />
+  <node name="Explore" pkg="nearest_frontier_planner" type="nfp_explore_client" />
 
 
 </launch>
